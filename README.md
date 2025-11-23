@@ -1,4 +1,4 @@
-# 🦅 Python Port Scanner
+# 🐍 Python Port Scanner
 
 A fast, multi-threaded port scanner developed in Python. This tool allows users to scan a target IP address for open ports using TCP sockets.
 

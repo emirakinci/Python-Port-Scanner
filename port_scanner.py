@@ -1,36 +1,60 @@
 import socket
-import time
+import threading
+
+
+# It avoids the output being messed up
+print_lock = threading.Lock()
+
+
+# Moving the scanning process inside this function
+def scan_port(ip_addr, port):
+    try:
+        # 1. Create a socket object for each port...
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # 2. Set Timeout 
+        # Prevents the socket from hanging indefinitely if the server drops the packet (Firewall) or doesn't respond.
+        sock.settimeout(2)
+
+        # 3. Connection Attempt
+        # returns 0 if successful,otherwise the error code.
+        status = sock.connect_ex((ip_addr, port))
+
+        # 4. Checking the Status...
+        if status == 0:
+            with print_lock:
+                print(f"[+] Port {port} is OPEN!")
+    
+        # 5. Termination of the Connection
+        sock.close()
+    
+    except:
+        pass
+
+
 
 # Target Information
 target_ip = input("Please insert an IP address!:\n")
-target_ports = [21, 22, 80, 443, 3389] # most widely used ports...
+
+# Storing the generated threads for possible use in future
+generated_threads = list()
+
+print(f"\nScanning {target_ip} started... (Please wait)\n")
+print("*" * 50)
 
 
-for port in target_ports:
-    # 1. Create a socket object for each port...
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    
-    # 2. Set Timeout 
-    # Prevents the socket from hanging indefinitely if the server drops the packet (Firewall) or doesn't respond.
-    sock.settimeout(2)
 
-    # 3. Connection Attempt
-    # returns 0 if successful,otherwise the error code.
-    status = sock.connect_ex((target_ip, port))
+for port in range(1, 1025):    
+    # Generating threads for each port number
+    t = threading.Thread(target=scan_port, args=(target_ip, port))
+    generated_threads.append(t) # inserting in a list the generated threads
 
-    # 4. Checking the Status...
-    if status == 0:
-        print(f"[+] Connection to {target_ip}:{port} has been successfully established!\n")
-    else:
-        print(f"[-] Cannot establish connection to {target_ip}:{port}!\n")
+    t.start() # executing the scan for that specific port given to each thread
 
-    # 5. Termination of the Connection
-    sock.close()
-    print("The socket is closed and the resources are freed!\n")
 
-    # 6. Waiting 0.5 seconds before trying to connect to the next port!
-    time.sleep(0.5) 
-    print("***************************************\n")
-    
-    if(port != target_ports[-1]):
-        print("Starting to connect to the next port...\n")
+# Wait for all threads to finish
+for thread in generated_threads:
+    thread.join()
+
+print("*" * 50)
+print("Scanning completed.")
